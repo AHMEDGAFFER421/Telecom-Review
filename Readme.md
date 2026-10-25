@@ -82,8 +82,10 @@ Power BI dashboard
 
 | File | What it does |
 |---|---|
-| `scrape_operators.py` | Scrapes each app with several sort orders and saves parquet files to `bronze/` |
+| `scrape_operators.py` | Pass 1: Arabic reviews, newest first, with retries and checkpoints. Saves parquet files to `bronze/` |
+| `scrape_multi_sort.py` | Pass 2: newest, most relevant and rating sorts in Arabic and English, to reach older reviews and Franco-Arabic text |
 | `silver_clean_v7.2.py` | Deduplicates, cleans and classifies the reviews and writes the silver files (v7.2) |
+| `requirements.txt` | Python packages needed to run the scripts |
 | `sample_reviews_public.csv` | 2,000 random rows of the dashboard source, so the data can be inspected without running anything |
 | `docs/Classifier_Audit.md` | The two classifier audits, the fixes and what is still wrong |
 | `Assets/` | Dashboard screenshots used in this README |
@@ -92,7 +94,12 @@ The pipeline writes `bronze/` (raw scrapes), `silver/reviews_raw.parquet` (raw a
 
 ## Scraping
 
-Google Play only returns a limited number of reviews per sort order. A newest-first scrape stopped at March 2022 for Vodafone, so the scraper also pulls most-relevant and rating-sorted reviews and de-duplicates on `reviewId`. The old Vodafone reviews that came from this extra pass are a sample of the most-helpful reviews, not a full history. That is why the comparison window starts at 10 March 2022, the point where all four apps have complete chronological data.
+Google Play only returns a limited number of reviews per sort order, and a newest-first scrape stopped at March 2022 for Vodafone. So I scrape in two passes with the `google-play-scraper` library:
+
+1. `scrape_operators.py`: Arabic reviews, newest first, with retries and checkpoints.
+2. `scrape_multi_sort.py`: three sort orders (newest, most relevant, rating) in two languages (Arabic and English, which also catches Franco-Arabic text), so six queries per app.
+
+The silver pipeline loads every bronze file and de-duplicates on `reviewId`. The old Vodafone reviews that came from the extra pass are a sample of the most-helpful reviews, not a full history. That is why the comparison window starts at 10 March 2022, the point where all four apps have complete chronological data.
 
 ## Data cleaning
 
@@ -151,8 +158,8 @@ Some things I ran into:
 
 ## How to run
 
-1. Install the requirements: Python, pandas and pyarrow (plus `[scraper library, confirm]` for scraping).
-2. Run `scrape_operators.py` to fill `bronze/`.
+1. Install the requirements: `pip install -r requirements.txt` (pandas, pyarrow and google-play-scraper).
+2. Run `scrape_operators.py` and then `scrape_multi_sort.py` to fill `bronze/`.
 3. Run `silver_clean_v7.2.py` from the project root. It writes the files in `silver/`.
 4. Load `silver/reviews_public.csv` in Power BI. If the pipeline adds columns, update the `Columns=` value in the Source step of Power Query.
 
@@ -160,4 +167,4 @@ To look at the data without running anything, open `sample_reviews_public.csv`.
 
 ## Tools
 
-Python (pandas, pyarrow, regex), Power BI (DAX, Power Query), VS Code.
+Python (pandas, pyarrow, regex, google-play-scraper), Power BI (DAX, Power Query), VS Code.
