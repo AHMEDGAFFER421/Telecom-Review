@@ -137,7 +137,7 @@ One flat table of reviews with small dimension tables.
 
 ## Measures
 
-The main measures are Total Reviews, Avg Score, % Negative Reviews, Reply Rate %, Reply Rate % - Negative, Reply Rate % - Non-Negative, Negative Reviews - Not Replied, Replied Within 24h %, Low Rating %, App Bug Complaint % and Topic Share of Operator. They are all in `Telecom_DAX_Measures.dax`, with a short comment on each and the value you should see on the dashboard.
+The main measures are Total Reviews, Avg Score, % Negative Reviews, Reply Rate %, Reply Rate % - Negative, Reply Rate % - Non-Negative, Negative Reviews - Not Replied, Replied Within 24h %, Low Rating %, App Bug Complaint % and Topic Share of Operator. They are all in [`Telecom_DAX_Measures.dax`](Telecom_DAX_Measures.dax), with a short comment on each and the value you should see on the dashboard.
 
 Some things I ran into:
 
