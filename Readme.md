@@ -87,6 +87,7 @@ Power BI dashboard
 | `silver_clean_v7.2.py` | Deduplicates, cleans and classifies the reviews and writes the silver files (v7.2) |
 | `requirements.txt` | Python packages needed to run the scripts |
 | `sample_reviews_public.csv` | 2,000 random rows of the dashboard source, so the data can be inspected without running anything |
+| `Telecom_DAX_Measures.dax` | The dashboard measures, each with a plain-English comment and the value to expect |
 | `docs/Classifier_Audit.md` | The two classifier audits, the fixes and what is still wrong |
 | `Assets/` | Dashboard screenshots used in this README |
 
@@ -136,7 +137,7 @@ One flat table of reviews with small dimension tables.
 
 ## Measures
 
-The main measures are Total Reviews, Avg Score, % Negative Reviews, Reply Rate %, Reply Rate % - Negative, Reply Rate % - Non-Negative, Negative Reviews - Not Replied, Replied Within 24h %, Low Rating %, App Bug Complaint % and Topic Share of Operator.
+The main measures are Total Reviews, Avg Score, % Negative Reviews, Reply Rate %, Reply Rate % - Negative, Reply Rate % - Non-Negative, Negative Reviews - Not Replied, Replied Within 24h %, Low Rating %, App Bug Complaint % and Topic Share of Operator. They are all in `Telecom_DAX_Measures.dax`, with a short comment on each and the value you should see on the dashboard.
 
 Some things I ran into:
 
