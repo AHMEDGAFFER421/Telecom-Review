@@ -82,17 +82,13 @@ Power BI dashboard
 
 | File | What it does |
 |---|---|
-| `[scraper script, confirm name]` | Scrapes each app with several sort orders and saves parquet files |
-| `bronze/` | Raw scraped reviews, one parquet file per app and language |
-| `[silver pipeline script, confirm name]` | Dedup, cleaning, classification and the three silver outputs (v7.2) |
-| `silver/reviews_public.csv` and `.parquet` | The dashboard source: no review text |
-| `silver/reviews_raw.parquet` | Raw archive for incremental runs |
-| `silver/pipeline_log.json` | Row counts at every pipeline step |
-| `silver/anger_audit/` | Keyword frequency checks for the anger dictionary |
-| `Telecom 2.pbix` | The Power BI report |
+| `scrape_operators.py` | Scrapes each app with several sort orders and saves parquet files to `bronze/` |
+| `silver_clean_v7.2.py` | Deduplicates, cleans and classifies the reviews and writes the silver files (v7.2) |
+| `sample_reviews_public.csv` | 2,000 random rows of the dashboard source, so the data can be inspected without running anything |
+| `docs/Classifier_Audit.md` | The two classifier audits, the fixes and what is still wrong |
 | `Assets/` | Dashboard screenshots used in this README |
 
-The private file and the audit samples contain review text, so they stay out of the repository.
+The pipeline writes `bronze/` (raw scrapes), `silver/reviews_raw.parquet` (raw archive), `silver/reviews_private.parquet` (with review text), `silver/reviews_public.csv` and `.parquet` (no text, the dashboard source) and `silver/pipeline_log.json` (row counts at every step). None of these are in the repository: the raw and private files contain review text, and the full public file is 200 MB. The Power BI report file is not included either.
 
 ## Scraping
 
@@ -156,9 +152,11 @@ Some things I ran into:
 ## How to run
 
 1. Install the requirements: Python, pandas and pyarrow (plus `[scraper library, confirm]` for scraping).
-2. Run the scraper to fill `bronze/`.
-3. Run the silver pipeline from the project root. It writes the files in `silver/`.
-4. Open the Power BI report, point the source to `silver/reviews_public.csv` and refresh. If the pipeline adds columns, update the `Columns=` value in the Source step of Power Query.
+2. Run `scrape_operators.py` to fill `bronze/`.
+3. Run `silver_clean_v7.2.py` from the project root. It writes the files in `silver/`.
+4. Load `silver/reviews_public.csv` in Power BI. If the pipeline adds columns, update the `Columns=` value in the Source step of Power Query.
+
+To look at the data without running anything, open `sample_reviews_public.csv`.
 
 ## Tools
 
