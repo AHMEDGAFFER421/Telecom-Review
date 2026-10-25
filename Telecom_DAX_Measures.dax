@@ -1,0 +1,193 @@
+/* ============================================================
+   TELECOM EGYPT REVIEWS - DAX MEASURES IN ONE PLACE
+   Short, plain English. Each one says what it tells us.
+
+   "Check" = the value you should see with the page filter
+   in_common_window = True (10 Mar 2022 onward, 950,160 reviews)
+   and no other filter, unless the line says otherwise.
+
+   Tables:  reviews_public (one row per review), dim_operator,
+            dim_date, dim_language, dim_category, _Measures
+   Key columns: score, sentiment_group (negative = 1-2 stars,
+            neutral = 3, positive = 4-5), has_reply, reply_lag_days,
+            complaint_category, in_common_window
+   ============================================================ */
+
+
+/* ---------- 1) Basics ---------- */
+
+-- How many reviews are in the current filter.
+-- Check: 950,160   (Vodafone 442,261 | Etisalat 282,177 | WE 124,643 | Orange 101,079)
+Total Reviews =
+COUNTROWS(reviews_public)
+
+-- Average star rating, 1 to 5.
+-- Check: Vodafone 4.20 | Etisalat 4.29 | Orange 3.61 | WE 2.56
+Avg Score =
+AVERAGE(reviews_public[score])
+
+-- Share of reviews rated 1-2 stars.
+-- Check: 23.7% overall | Vodafone 17% | Etisalat 15% | Orange 33% | WE 59%
+% Negative Reviews =
+DIVIDE(
+    CALCULATE(COUNTROWS(reviews_public), reviews_public[sentiment_group] = "negative"),
+    [Total Reviews]
+)
+
+
+/* ---------- 2) Replies ---------- */
+
+-- Helper: reviews that got a reply.
+With Reply Count =
+CALCULATE(
+    COUNTROWS(reviews_public),
+    reviews_public[has_reply] = TRUE()
+)
+
+-- Helper: reviews with no reply.
+With No Reply Count =
+CALCULATE(
+    COUNTROWS(reviews_public),
+    reviews_public[has_reply] = FALSE()
+)
+
+-- Share of all reviews that got a reply. WE has never replied, so it is 0.
+-- Check: 39% overall | Vodafone 18% | Etisalat 90% | Orange 39% | WE 0%
+Reply Rate % =
+DIVIDE([With Reply Count], [Total Reviews])
+
+-- The four cells of "negative or not" x "replied or not". They add up to Total Reviews.
+-- Check: 114,699 | 258,070 | 110,514 | 466,877   (sum 950,160)
+Negative Reviews - Replied =
+CALCULATE(
+    COUNTROWS(reviews_public),
+    reviews_public[sentiment_group] = "negative",
+    reviews_public[has_reply] = TRUE()
+)
+
+Non-Negative Reviews - Replied =
+CALCULATE(
+    COUNTROWS(reviews_public),
+    reviews_public[sentiment_group] <> "negative",
+    reviews_public[has_reply] = TRUE()
+)
+
+-- Also the backlog: 1-2 star reviews nobody answered.
+-- Check: WE 73,960 | Orange 14,550 | Vodafone 12,910 | Etisalat 9,100
+Negative Reviews - Not Replied =
+CALCULATE(
+    COUNTROWS(reviews_public),
+    reviews_public[sentiment_group] = "negative",
+    reviews_public[has_reply] = FALSE()
+)
+
+Non-Negative Reviews - Not Replied =
+CALCULATE(
+    COUNTROWS(reviews_public),
+    reviews_public[sentiment_group] <> "negative",
+    reviews_public[has_reply] = FALSE()
+)
+
+-- Of the 1-2 star reviews, how many got a reply. This is who the operator chooses to answer.
+-- Check: Vodafone 82.87% | Etisalat 78.80% | Orange 55.87% | WE 0%
+Reply Rate % - Negative =
+DIVIDE([Negative Reviews - Replied],
+       [Negative Reviews - Replied] + [Negative Reviews - Not Replied])
+
+-- Of the other reviews, how many got a reply.
+-- Check: Vodafone 4.66% | Etisalat 91.90% | Orange 30.98% | WE 0%
+Reply Rate % - Non-Negative =
+DIVIDE([Non-Negative Reviews - Replied],
+       [Non-Negative Reviews - Replied] + [Non-Negative Reviews - Not Replied])
+
+-- Share of replies posted within 24 hours (reply_lag_days = 0).
+-- Replies dated before the review are blank in reply_lag_days (likely edited reviews),
+-- so NOT ISBLANK keeps them out. In DAX a blank equals 0, so without it they would count as same-day.
+-- Check: 93.83% overall | Vodafone 99.97% | Etisalat 99.97% | Orange 42.04%
+Replied Within 24h % =
+VAR replied =
+    FILTER(
+        reviews_public,
+        reviews_public[has_reply] = TRUE()
+            && NOT ISBLANK(reviews_public[reply_lag_days])
+    )
+RETURN
+    DIVIDE(
+        COUNTROWS(FILTER(replied, reviews_public[reply_lag_days] = 0)),
+        COUNTROWS(replied)
+    )
+
+
+/* ---------- 3) Ratings and topics ---------- */
+
+-- Reviews rated 1 or 2 stars.
+-- Check: 225,213
+Low Rated Reviews =
+CALCULATE(
+    COUNTROWS(reviews_public),
+    reviews_public[score] IN {1, 2}
+)
+
+-- Reviews rated 4 or 5 stars. (3-star reviews are left out on purpose.)
+-- Check: 691,889
+High Rated Reviews =
+CALCULATE(
+    COUNTROWS(reviews_public),
+    reviews_public[score] IN {4, 5}
+)
+
+-- Of the reviews rated 1-2 or 4-5, the share rated 1-2. Use it by complaint_category.
+-- Check: 24.6% overall | customer_service 77.6% | app_bug 75.2% | billing 66.5% | network_coverage 65.9%
+Low Rating % =
+DIVIDE(
+    [Low Rated Reviews],
+    [Low Rated Reviews] + [High Rated Reviews]
+)
+
+-- Each topic's share of the 1-2 star reviews that are on screen (use with ALLSELECTED so
+-- the filtered topics add up to 100%). Used for the topic mix by operator.
+Topic Share of Operator =
+DIVIDE(
+    [Low Rated Reviews],
+    CALCULATE([Low Rated Reviews], ALLSELECTED(reviews_public[complaint_category]))
+)
+
+-- Share of reviews that are negative app-bug complaints. Used by app version.
+-- Check: about 6.6% overall (63,015 of 950,160)
+App Bug Complaint % =
+DIVIDE(
+    CALCULATE(
+        COUNTROWS(reviews_public),
+        reviews_public[complaint_category] = "app_bug",
+        reviews_public[sentiment_group] = "negative"
+    ),
+    COUNTROWS(reviews_public)
+)
+
+
+/* ---------- 4) Formatting helper ---------- */
+
+-- Brand color per operator, used for conditional formatting on the charts.
+Operator Color =
+VAR CurrentOperator = SELECTEDVALUE(dim_operator[app_name], SELECTEDVALUE(dim_operator[operator]))
+RETURN
+    SWITCH(
+        TRUE(),
+        CurrentOperator IN {"Ana Vodafone", "vodafone_eg"}, "#E60000", // Red
+        CurrentOperator IN {"My Orange", "orange_eg"},     "#FF7900", // Orange
+        CurrentOperator IN {"My Etisalat", "etisalat_eg"}, "#71B200", // Green
+        CurrentOperator IN {"My WE", "we_eg"},             "#5B2588", // Purple
+        "#808080"
+    )
+
+
+/* ============================================================
+   NOTES
+   - A blank equals both 0 and FALSE in DAX. To test for a missing
+     value, use ISBLANK, never = BLANK() or = FALSE().
+   - The page filter in_common_window = True matters: without it,
+     operators are compared over different periods and the check
+     values above will not match.
+   - Left out of this file: the data-check measures used while
+     reconciling row counts, and a few older measures that no page uses.
+   ============================================================ */
