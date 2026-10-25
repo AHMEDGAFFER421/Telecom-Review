@@ -80,10 +80,8 @@ SILVER_DIR = Path("silver")
 SILVER_DIR.mkdir(exist_ok=True)
 
 # in_common_window policy:
-#   True = review is in the window where ALL 4 operators have coverage.
-# Current setting assumes all 4 operators have Play Store data from 2022-03-10.
-# If your data actually starts in 2018 for all 4, change and re-run — this
-# shifts every downstream benchmark.
+# in_common_window: True = the review is from the date when all four apps have
+# complete, chronologically scraped data (10 March 2022 onward).
 COMMON_START = pd.Timestamp("2022-03-10")
 
 # ---------------------------------------------------------------------------
